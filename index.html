@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; connect-src https://script.google.com https://script.googleusercontent.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="theme-color" content="#0f4c81">
+<title>Inventario de Computadores</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--azul:#0f4c81;--azul2:#1b6ab3;--bg:#f2f5f9;--card:#fff;--txt:#1c2733;--sub:#5b6b7b;--borde:#d3dce6;
+--ok:#1e8e4e;--warn:#d98a00;--mal:#c62828;--gris:#78808a}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+header{background:var(--azul);color:#fff;padding:12px max(14px,env(safe-area-inset-left)) 12px max(14px,env(safe-area-inset-right))}
+.wrap{max-width:1100px;margin:0 auto}
+header h1{margin:0 0 10px;font-size:1.15rem;display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+header h1 small{font-weight:400;opacity:.9;font-size:.85rem}
+.buscar{width:100%;min-height:46px;padding:10px 12px;border:0;border-radius:8px;background:#fff}
+.filtros{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.filtros select{min-width:0;min-height:44px;padding:6px 8px;border-radius:8px;border:0;background:#fff;color:var(--txt);font-size:.9rem}
+.buscar{color:var(--txt)}
+main{padding:12px max(14px,env(safe-area-inset-left)) 40px max(14px,env(safe-area-inset-right))}
+.acciones{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.acciones button{min-height:46px;padding:0 14px;border-radius:8px;border:1px solid var(--borde);background:#fff;cursor:pointer}
+.acciones .principal{flex:1 1 220px;background:var(--azul2);border-color:var(--azul2);color:#fff;font-weight:600;font-size:1.05rem}
+.acciones .sec{flex:1 1 110px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--borde);border-radius:10px;padding:8px 10px;text-align:center}
+.stat b{display:block;font-size:1.3rem}
+.stat span{font-size:.75rem;color:var(--sub)}
+.lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.card{background:var(--card);border:1px solid var(--borde);border-left:6px solid var(--gris);border-radius:10px;padding:10px 12px;cursor:pointer}
+.card:focus-visible,button:focus-visible{outline:3px solid #ffbf47;outline-offset:2px}
+.card.e-ok{border-left-color:var(--ok)}
+.card.e-warn{border-left-color:var(--warn)}
+.card.e-mal{border-left-color:var(--mal)}
+.card h3{margin:0 0 2px;font-size:1.02rem;display:flex;justify-content:space-between;gap:8px}
+.sub{color:var(--sub);font-size:.88rem;overflow-wrap:anywhere}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.tag{font-size:.75rem;padding:2px 8px;border-radius:20px;background:#e8eef5;color:#33475b}
+.tag.arr{background:#e3f0ff;color:#0b4d99}
+.tag.pro{background:#eaf5ea;color:#256029}
+.tag.alerta{background:#fdeaea;color:var(--mal);font-weight:600}
+.tag.e-ok{background:#e3f4ea;color:var(--ok)}
+.tag.e-warn{background:#fff3dc;color:#9a6200}
+.tag.e-mal{background:#fdeaea;color:var(--mal)}
+.mas{grid-column:1/-1;min-height:46px;border-radius:8px;border:1px solid var(--borde);background:#fff;cursor:pointer}
+.vacio{grid-column:1/-1;text-align:center;color:var(--sub);padding:40px 10px}
+.aviso{font-size:.8rem;color:var(--sub);text-align:center;margin-top:16px}
+.estado{font-size:.85rem;color:var(--sub);margin:0 0 12px}
+.estado.err{color:var(--mal);font-weight:600}
+.ayuda{font-size:.8rem;color:var(--sub);margin:0}
+
+dialog:not([open]){display:none}
+dialog{border:0;border-radius:14px;padding:0;width:min(640px,96vw);max-height:94vh;color:var(--txt);background:#fff}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+form{display:flex;flex-direction:column;max-height:94vh}
+.dh{padding:12px 14px;background:var(--azul);color:#fff;font-weight:600}
+.db{padding:12px 14px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-content:start}
+.db .full{grid-column:1/-1}
+label{font-size:.8rem;color:var(--sub);display:block;margin-bottom:3px}
+input,select,textarea{width:100%;min-height:44px;padding:9px;border:1px solid var(--borde);border-radius:8px;background:#fff}
+textarea{min-height:80px;resize:vertical}
+.df{display:flex;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--borde);background:#fafcfe}
+.df button{flex:1;min-height:46px;border-radius:8px;border:0;cursor:pointer}
+.b-ok{background:var(--azul2);color:#fff;font-weight:600}
+.b-no{background:#e6ebf1}
+.b-del{background:#fdeaea;color:var(--mal);flex:0 0 auto!important;padding:0 14px}
+@media(max-width:600px){
+  dialog{width:100%;max-width:100%;height:100dvh;max-height:100dvh;border-radius:0;margin:0}
+  form{height:100dvh;max-height:100dvh}
+  .db{flex:1}
+}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20;max-width:92vw;text-align:center}
+#toast.on{opacity:.95}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Inventario de Computadores <small id="contador"></small></h1>
+    <input class="buscar" id="q" type="search" aria-label="Buscar equipos" placeholder="Buscar nombre, serie, IP, unidad…" autocomplete="off">
+    <div class="filtros">
+      <select id="fTipo" aria-label="Filtrar por tipo"></select>
+      <select id="fProp" aria-label="Filtrar por propiedad"></select>
+      <select id="fEstado" aria-label="Filtrar por estado"></select>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="acciones">
+      <button class="principal" id="nuevo">+ Agregar equipo</button>
+      <button class="sec" id="bSync">Sincronizar</button>
+      <button class="sec" id="bConf">Conexión</button>
+      <button class="sec" id="bCsv">Exportar CSV</button>
+      <button class="sec" id="bJson">Respaldo JSON</button>
+      <button class="sec" id="bImp">Importar JSON</button>
+    </div>
+    <p class="estado" id="estadoSync" role="status" aria-live="polite"></p>
+    <div class="stats" id="stats"></div>
+    <div class="lista" id="lista"></div>
+    <p class="aviso">Los datos se guardan solo en este dispositivo. Haz un respaldo JSON con frecuencia.</p>
+  </div>
+</main>
+<input type="file" id="archivo" accept=".json,application/json" hidden>
+
+<dialog id="dlgForm">
+  <form method="dialog" id="form" novalidate>
+    <div class="dh" id="formTitulo">Nuevo equipo</div>
+    <div class="db">
+      <div><label for="f_nombre">Nombre del equipo *</label><input name="nombre" id="f_nombre" required></div>
+      <div><label for="f_inventario">N° inventario</label><input name="inventario" id="f_inventario"></div>
+      <div><label for="f_tipo">Tipo</label><select name="tipo" id="f_tipo"></select></div>
+      <div><label for="f_propiedad">Propiedad</label><select name="propiedad" id="f_propiedad"></select></div>
+      <div><label for="f_marca">Marca</label><input name="marca" id="f_marca"></div>
+      <div><label for="f_modelo">Modelo</label><input name="modelo" id="f_modelo"></div>
+      <div><label for="f_serie">N° de serie</label><input name="serie" id="f_serie"></div>
+      <div><label for="f_estado">Estado</label><select name="estado" id="f_estado"></select></div>
+      <div><label for="f_ubicacion">Unidad / ubicación</label><input name="ubicacion" id="f_ubicacion"></div>
+      <div><label for="f_usuario">Usuario responsable</label><input name="usuario" id="f_usuario"></div>
+      <div><label for="f_ip">Dirección IP</label><input name="ip" id="f_ip" inputmode="decimal"></div>
+      <div><label for="f_so">Sistema operativo</label><input name="so" id="f_so" placeholder="Ej: Windows 11 Pro"></div>
+      <div><label for="f_ram">RAM</label><input name="ram" id="f_ram" placeholder="Ej: 8 GB"></div>
+      <div><label for="f_disco">Disco</label><input name="disco" id="f_disco" placeholder="Ej: SSD 256 GB"></div>
+      <div class="full"><label for="f_obs">Observaciones</label><textarea name="obs" id="f_obs"></textarea></div>
+    </div>
+    <div class="df">
+      <button type="button" class="b-del" id="bDel" hidden>Eliminar</button>
+      <button type="button" class="b-no" id="bCancel">Cancelar</button>
+      <button type="submit" class="b-ok">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgConf">
+  <form method="dialog" id="formConf" novalidate>
+    <div class="dh">Conexión con la planilla de Drive</div>
+    <div class="db">
+      <div class="full"><label for="f_url">URL de la aplicación web (termina en /exec)</label><input name="url" id="f_url" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false"></div>
+      <div class="full"><label for="f_clave">Clave (mínimo 12 caracteres)</label><input name="clave" id="f_clave" type="password" autocomplete="off" spellcheck="false"></div>
+      <p class="ayuda full">Se guardan solo en este dispositivo. La clave es la misma que pusiste en el script de la planilla.</p>
+    </div>
+    <div class="df">
+      <button type="button" class="b-del" id="cQuitar">Quitar</button>
+      <button type="button" class="b-no" id="cCancel">Cancelar</button>
+      <button type="submit" class="b-ok">Guardar y sincronizar</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+var KEY="inventario_computadores_v1";
+var TIPOS=["Escritorio","Notebook","All-in-One","Mini PC","Servidor","Otro"];
+var PROPS=["Arriendo","Propio"];
+var ESTADOS=["Operativo","En falla","En reparación","De baja"];
+var CAMPOS=[["nombre","Nombre"],["inventario","N° inventario"],["tipo","Tipo"],["propiedad","Propiedad"],["marca","Marca"],["modelo","Modelo"],["serie","N° serie"],["estado","Estado"],["ubicacion","Ubicación"],["usuario","Usuario"],["ip","IP"],["so","Sistema operativo"],["ram","RAM"],["disco","Disco"],["obs","Observaciones"]];
+var MAX_CAMPO=1000,MAX_OBS=4000,MAX_IMPORT_BYTES=5*1024*1024,MAX_IMPORT_ITEMS=5000,PAGINA=150,MIN_CLAVE=12;
+
+var KEY_PEND="inventario_computadores_pend_v1";
+var KEY_CFG="inventario_computadores_cfg_v1";
+var KEY_LAST="inventario_computadores_last_v1";
+
+var datos=[];      // lista de equipos
+var ordenados=[];  // misma lista, ordenada por nombre (se recalcula solo al cambiar los datos)
+var busqueda={};   // id -> texto de búsqueda sin tildes
+var stats=[];      // contadores del panel
+var pend=[];       // cambios que aún no llegan a la planilla
+var cfg=null;      // {url, clave}
+var ultimaSync=null;
+var ultimoError="";
+var sincronizando=false;
+var editId=null;
+var limite=PAGINA;
+var colador=("Intl" in window)?new Intl.Collator("es",{numeric:true,sensitivity:"base"}):null;
+
+function $(id){return document.getElementById(id)}
+function leer(k,def){
+  var r=null;
+  try{r=localStorage.getItem(k);return r?JSON.parse(r):def}
+  catch(e){
+    // Dato dañado: se guarda una copia aparte para no perderlo y se sigue con valores vacíos.
+    try{if(r)localStorage.setItem(k+"_dañado",r)}catch(e2){}
+    return def;
+  }
+}
+function escribir(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+function plano(s){
+  s=String(s==null?"":s).toLowerCase();
+  return s.normalize?s.normalize("NFD").replace(/[̀-ͯ]/g,""):s;
+}
+function canon(v,lista){
+  v=String(v==null?"":v).trim();
+  var p=plano(v);
+  for(var i=0;i<lista.length;i++)if(plano(lista[i])===p)return lista[i];
+  return v;
+}
+function cargar(){
+  var d=leer(KEY,[]);
+  datos=(Array.isArray(d)?d:[]).filter(function(x){return x&&typeof x==="object"}).map(normalizar);
+  pend=leer(KEY_PEND,[]);if(!Array.isArray(pend))pend=[];
+  pend=pend.filter(function(p){return p&&((p.op==="upsert"&&p.reg&&p.reg.id)||(p.op==="delete"&&p.id))});
+  cfg=leer(KEY_CFG,null);
+  if(cfg&&(typeof cfg.url!=="string"||typeof cfg.clave!=="string"))cfg=null;
+  ultimaSync=leer(KEY_LAST,null);
+}
+function guardar(){
+  var ok=escribir(KEY,datos)&&escribir(KEY_PEND,pend);
+  if(ok)escribir(KEY_LAST,ultimaSync);
+  else toast("No se pudo guardar en este navegador. Exporta un respaldo.");
+}
+function idDe(op){return op.op==="upsert"?op.reg.id:op.id}
+function encolar(op){
+  var id=idDe(op);
+  pend=pend.filter(function(p){return idDe(p)!==id});
+  pend.push(op);
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+/* Las clases CSS salen de una lista fija, nunca del texto del equipo. */
+function claseEstado(e){
+  var c=canon(e,ESTADOS);
+  return c==="Operativo"?"e-ok":(c==="En falla"||c==="En reparación")?"e-warn":c==="De baja"?"e-mal":"";
+}
+function toast(m){var t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove("on")},3200)}
+function abrirDlg(d){if(d.showModal)d.showModal();else d.setAttribute("open","")}
+function cerrarDlg(d){if(d.close)d.close();else d.removeAttribute("open")}
+
+/* Alerta de SO sin soporte: Windows XP/Vista/7/8/8.1/10 (según el texto escrito) */
+function soAlerta(so){
+  if(!so)return false;
+  return /\bwin(dows)?\s*(xp|vista|7|8|8\.1|10)\b/i.test(so);
+}
+
+function llenarSelect(sel,opciones,todos,extra){
+  sel.innerHTML="";
+  if(todos){var o=document.createElement("option");o.value="";o.textContent=todos;sel.appendChild(o)}
+  opciones.forEach(function(v){var o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o)});
+  if(extra&&opciones.indexOf(extra)===-1){var x=document.createElement("option");x.value=extra;x.textContent=extra+" (valor anterior)";sel.appendChild(x)}
+}
+
+/* Se ejecuta solo cuando cambian los datos, no en cada tecla. */
+function reindexar(){
+  ordenados=datos.slice().sort(function(a,b){
+    var x=a.nombre||"",y=b.nombre||"";
+    return colador?colador.compare(x,y):(x<y?-1:x>y?1:0);
+  });
+  busqueda={};
+  datos.forEach(function(d){busqueda[d.id]=plano(CAMPOS.map(function(c){return d[c[0]]}).join("\n"))});
+  var arr=0,pro=0,op=0,falla=0,so=0;
+  datos.forEach(function(d){
+    if(d.propiedad==="Arriendo")arr++;else if(d.propiedad==="Propio")pro++;
+    if(d.estado==="Operativo")op++;
+    if(d.estado==="En falla"||d.estado==="En reparación")falla++;
+    if(soAlerta(d.so))so++;
+  });
+  stats=[["Total",datos.length],["Arriendo",arr],["Propios",pro],["Operativos",op],["En falla / rep.",falla],["SO sin soporte",so]];
+  $("stats").innerHTML=stats.map(function(s){return '<div class="stat"><b>'+s[1]+'</b><span>'+s[0]+'</span></div>'}).join("");
+}
+function filtrados(){
+  var q=plano($("q").value.trim());
+  var t=$("fTipo").value,p=$("fProp").value,e=$("fEstado").value;
+  return ordenados.filter(function(d){
+    if(t&&d.tipo!==t)return false;
+    if(p&&d.propiedad!==p)return false;
+    if(e&&d.estado!==e)return false;
+    return !q||busqueda[d.id].indexOf(q)>-1;
+  });
+}
+function tarjeta(d){
+  var l1=[d.marca,d.modelo].filter(Boolean).join(" ");
+  var l2=[d.ubicacion,d.usuario].filter(Boolean).join(" · ");
+  var ce=claseEstado(d.estado);
+  var tags='<span class="tag">'+esc(d.tipo)+'</span>'
+    +'<span class="tag '+(d.propiedad==="Arriendo"?"arr":"pro")+'">'+esc(d.propiedad)+'</span>'
+    +'<span class="tag '+ce+'">'+esc(d.estado)+'</span>'
+    +(d.ip?'<span class="tag">'+esc(d.ip)+'</span>':"")
+    +(soAlerta(d.so)?'<span class="tag alerta">SO sin soporte</span>':"");
+  return '<div class="card '+ce+'" role="button" tabindex="0" data-id="'+esc(d.id)+'">'
+    +'<h3><span>'+esc(d.nombre||"(sin nombre)")+'</span><span class="sub">'+esc(d.inventario)+'</span></h3>'
+    +'<div class="sub">'+esc(l1)+(d.serie?(l1?" · ":"")+"S/N "+esc(d.serie):"")+'</div>'
+    +(l2?'<div class="sub">'+esc(l2)+'</div>':"")
+    +'<div class="tags">'+tags+'</div></div>';
+}
+function render(){
+  var lista=filtrados();
+  $("contador").textContent=lista.length+" de "+datos.length+" equipos";
+  if(!lista.length){
+    $("lista").innerHTML='<div class="vacio">'+(datos.length?"Sin resultados con esos filtros.":"Aún no hay equipos. Toca «+ Agregar equipo» para anotar el primero.")+'</div>';
+    return;
+  }
+  var html=lista.slice(0,limite).map(tarjeta).join("");
+  if(lista.length>limite)html+='<button type="button" class="mas" id="mas">Mostrar más ('+(lista.length-limite)+' restantes)</button>';
+  $("lista").innerHTML=html;
+}
+function datosCambiaron(){reindexar();render()}
+function filtroCambio(){limite=PAGINA;render()}
+
+function abrirForm(id){
+  var f=$("form");f.reset();
+  var d=id?datos.filter(function(x){return x.id===id})[0]:null;
+  editId=d?d.id:null;
+  $("formTitulo").textContent=d?"Editar equipo":"Nuevo equipo";
+  $("bDel").hidden=!d;
+  llenarSelect(f.elements.tipo,TIPOS,"",d&&d.tipo);
+  llenarSelect(f.elements.propiedad,PROPS,"",d&&d.propiedad);
+  llenarSelect(f.elements.estado,ESTADOS,"",d&&d.estado);
+  CAMPOS.forEach(function(c){var el=f.elements[c[0]];if(el)el.value=d?(d[c[0]]||""):""});
+  if(!d){f.elements.tipo.value="Escritorio";f.elements.propiedad.value="Arriendo";f.elements.estado.value="Operativo"}
+  abrirDlg($("dlgForm"));
+}
+function guardarForm(){
+  var f=$("form");
+  if(!f.elements.nombre.value.trim()){toast("El nombre del equipo es obligatorio");f.elements.nombre.focus();return}
+  var obj={};
+  CAMPOS.forEach(function(c){obj[c[0]]=f.elements[c[0]].value.trim().slice(0,c[0]==="obs"?MAX_OBS:MAX_CAMPO)});
+  var dup=datos.some(function(x){return x.id!==editId&&obj.serie&&x.serie&&x.serie.toLowerCase()===obj.serie.toLowerCase()});
+  if(dup&&!confirm("Ya existe un equipo con ese N° de serie. ¿Guardar igual?"))return;
+  var reemplazado=false;
+  obj.id=editId||uid();
+  obj.modificado=new Date().toISOString();
+  for(var i=0;i<datos.length;i++){if(datos[i].id===obj.id){datos[i]=obj;reemplazado=true;break}}
+  if(!reemplazado)datos.push(obj);
+  encolar({op:"upsert",reg:obj});
+  guardar();cerrarDlg($("dlgForm"));datosCambiaron();toast("Guardado");
+  pedirSync();
+}
+function eliminar(){
+  if(!editId)return;
+  if(!confirm("¿Eliminar este equipo? No se puede deshacer."))return;
+  var id=editId;
+  datos=datos.filter(function(x){return x.id!==id});
+  encolar({op:"delete",id:id,modificado:new Date().toISOString()});
+  guardar();cerrarDlg($("dlgForm"));datosCambiaron();toast("Eliminado");
+  pedirSync();
+}
+
+function descargar(nombre,contenido,tipo){
+  var blob=new Blob([contenido],{type:tipo});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=nombre;
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},800);
+}
+function fechaTag(){var d=new Date();function p(n){return String(n).padStart(2,"0")}return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())}
+function exportCsv(){
+  if(!datos.length){toast("No hay datos para exportar");return}
+  function cel(v){
+    v=String(v==null?"":v);
+    // Excel/Sheets ejecutan como fórmula lo que empieza con = + - @; se antepone ' para que sea texto.
+    if(/^[=+\-@\t\r]/.test(v))v="'"+v;
+    return /[",;\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+  }
+  var filas=[CAMPOS.map(function(c){return cel(c[1])}).join(";")];
+  ordenados.forEach(function(d){filas.push(CAMPOS.map(function(c){return cel(d[c[0]])}).join(";"))});
+  descargar("inventario_computadores_"+fechaTag()+".csv","﻿"+filas.join("\r\n"),"text/csv;charset=utf-8");
+  toast("CSV exportado");
+}
+function exportJson(){
+  if(!datos.length){toast("No hay datos para respaldar");return}
+  descargar("respaldo_computadores_"+fechaTag()+".json",JSON.stringify({version:1,equipos:datos},null,2),"application/json");
+  toast("Respaldo descargado");
+}
+function importarJson(file){
+  if(file.size>MAX_IMPORT_BYTES){toast("El archivo es demasiado grande (máximo 5 MB)");return}
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var j=JSON.parse(r.result);
+      var arr=Array.isArray(j)?j:j.equipos;
+      if(!Array.isArray(arr))throw new Error("formato");
+      if(arr.length>MAX_IMPORT_ITEMS){toast("Demasiados equipos en el archivo (máximo "+MAX_IMPORT_ITEMS+")");return}
+      var ahora=new Date().toISOString();
+      var pos={};datos.forEach(function(d,i){pos[d.id]=i});
+      var nuevos=arr.filter(function(x){return x&&typeof x==="object"}).map(function(x){
+        var n=normalizar(x);n.modificado=ahora;return n;
+      });
+      nuevos.forEach(function(n){
+        if(pos[n.id]!==undefined)datos[pos[n.id]]=n;else{pos[n.id]=datos.length;datos.push(n)}
+        encolar({op:"upsert",reg:n});
+      });
+      guardar();datosCambiaron();toast("Importados "+nuevos.length+" equipos (se combinan con los actuales)");
+      pedirSync();
+    }catch(e){toast("Archivo no válido")}
+  };
+  r.onerror=function(){toast("No se pudo leer el archivo")};
+  r.readAsText(file);
+}
+
+/* ---------- Sincronización con la planilla (Apps Script) ---------- */
+function normalizar(x){
+  var o={};
+  CAMPOS.forEach(function(c){
+    var v=x[c[0]]==null||typeof x[c[0]]==="object"?"":String(x[c[0]]);
+    o[c[0]]=v.slice(0,c[0]==="obs"?MAX_OBS:MAX_CAMPO);
+  });
+  o.tipo=canon(o.tipo,TIPOS);o.propiedad=canon(o.propiedad,PROPS);o.estado=canon(o.estado,ESTADOS);
+  o.id=x.id?String(x.id).slice(0,60):uid();
+  o.modificado=x.modificado?String(x.modificado):new Date().toISOString();
+  return o;
+}
+function hora(iso){
+  try{
+    var d=new Date(iso);var hoy=new Date();
+    var h=d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
+    return d.toDateString()===hoy.toDateString()?"hoy "+h:d.toLocaleDateString("es-CL")+" "+h;
+  }catch(e){return ""}
+}
+function estado(){
+  var el=$("estadoSync");
+  var n=pend.length;
+  var pt=n?" · "+n+(n===1?" cambio pendiente":" cambios pendientes"):"";
+  el.className="estado";
+  if(!cfg||!cfg.url){el.textContent="Sin conexión a la planilla: los datos están solo en este dispositivo. Toca «Conexión» para enlazarla.";return}
+  if(sincronizando){el.textContent="Sincronizando…"+pt;return}
+  if(ultimoError){el.className="estado err";el.textContent="No sincronizó: "+ultimoError+pt;return}
+  el.textContent=(ultimaSync?"Última sincronización: "+hora(ultimaSync):"Aún no sincronizado")+pt;
+}
+function fusionar(remoto){
+  var borrar={},pos={},res=[];
+  pend.forEach(function(p){if(p.op==="delete")borrar[p.id]=1});
+  remoto.forEach(function(r){
+    if(!r||typeof r!=="object")return;
+    var o=normalizar(r);
+    if(borrar[o.id]||pos[o.id]!==undefined)return;
+    pos[o.id]=res.length;res.push(o);
+  });
+  pend.forEach(function(p){
+    if(p.op!=="upsert")return;
+    if(pos[p.reg.id]!==undefined)res[pos[p.reg.id]]=p.reg;
+    else{pos[p.reg.id]=res.length;res.push(p.reg)}
+  });
+  datos=res;
+}
+var _tSync=null;
+/* Espera un momento tras editar, para enviar varios cambios seguidos en una sola petición. */
+function pedirSync(){clearTimeout(_tSync);_tSync=setTimeout(function(){sincronizar(false)},1500)}
+function sincronizar(manual){
+  if(!cfg||!cfg.url||!cfg.clave){if(manual)abrirConf();return Promise.resolve(false)}
+  if(sincronizando){if(manual)toast("Ya se está sincronizando…");return Promise.resolve(false)}
+  if(navigator.onLine===false){
+    estado();
+    if(manual)toast("Sin internet. Los cambios quedan guardados y se envían después.");
+    return Promise.resolve(false);
+  }
+  clearTimeout(_tSync);
+  sincronizando=true;estado();
+  var enviados=pend.slice(0,500); // lotes: el script acepta hasta 1000 por solicitud
+  var omitidos=0;
+  var ctrl=("AbortController" in window)?new AbortController():null;
+  var t=setTimeout(function(){if(ctrl)ctrl.abort()},30000);
+  return fetch(cfg.url,{
+    method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify({clave:cfg.clave,ops:enviados}),
+    redirect:"follow",
+    credentials:"omit",
+    referrerPolicy:"no-referrer",
+    signal:ctrl?ctrl.signal:undefined
+  }).then(function(r){return r.json()}).then(function(j){
+    if(!j||j.ok!==true){
+      var m={clave:"clave incorrecta",ocupado:"la planilla está ocupada, reintenta",config:"falta configurar la clave en el script de la planilla",solicitud:"solicitud rechazada por el script"}[j&&j.error]||"error del servidor";
+      var e=new Error(m);e.controlado=true;throw e;
+    }
+    omitidos=+j.omitidos||0;
+    pend=pend.filter(function(p){return enviados.indexOf(p)===-1});
+    fusionar(Array.isArray(j.equipos)?j.equipos:[]);
+    ultimaSync=new Date().toISOString();ultimoError="";
+    guardar();datosCambiaron();
+    if(omitidos)toast(omitidos+(omitidos===1?" cambio no se aplicó":" cambios no se aplicaron")+": la planilla tenía datos más recientes");
+    else if(manual)toast("Sincronizado");
+    return true;
+  }).catch(function(e){
+    if(e&&e.controlado)ultimoError=e.message;
+    else if(e&&e.name==="AbortError")ultimoError="tiempo agotado";
+    else if(e&&e.name==="SyntaxError")ultimoError="respuesta no válida; revisa la URL y que el acceso sea «Cualquier persona»";
+    else ultimoError="no se pudo contactar a Google; revisa internet y la URL";
+    if(manual)toast("No sincronizó: "+ultimoError);
+    return false;
+  }).then(function(r){
+    clearTimeout(t);sincronizando=false;estado();
+    if(r&&pend.length)pedirSync(); // hubo cambios mientras se sincronizaba
+    return r;
+  });
+}
+function abrirConf(){
+  var f=$("formConf");
+  f.elements.url.value=cfg&&cfg.url?cfg.url:"";
+  f.elements.clave.value=cfg&&cfg.clave?cfg.clave:"";
+  $("cQuitar").hidden=!cfg;
+  abrirDlg($("dlgConf"));
+}
+function guardarConf(){
+  var f=$("formConf");
+  var url=f.elements.url.value.trim(),clave=f.elements.clave.value.trim();
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^\s]+\/exec$/.test(url)){toast("La URL debe empezar con https://script.google.com/macros/s/ y terminar en /exec");return}
+  if(clave.length<MIN_CLAVE){toast("La clave debe tener al menos "+MIN_CLAVE+" caracteres");return}
+  var cambio=!cfg||cfg.url!==url;
+  cfg={url:url,clave:clave};
+  escribir(KEY_CFG,cfg);
+  if(cambio){
+    // Primera conexión: envía los equipos que ya estaban cargados en este dispositivo.
+    datos.forEach(function(d){
+      if(!pend.some(function(p){return idDe(p)===d.id}))encolar({op:"upsert",reg:d});
+    });
+  }
+  ultimoError="";guardar();cerrarDlg($("dlgConf"));estado();
+  sincronizar(true);
+}
+function quitarConf(){
+  if(!confirm("¿Quitar la conexión? Los equipos se quedan en este dispositivo, pero dejan de enviarse a la planilla."))return;
+  cfg=null;try{localStorage.removeItem(KEY_CFG)}catch(e){}
+  cerrarDlg($("dlgConf"));estado();toast("Conexión quitada");
+}
+
+function init(){
+  llenarSelect($("fTipo"),TIPOS,"Tipo");
+  llenarSelect($("fProp"),PROPS,"Propiedad");
+  llenarSelect($("fEstado"),ESTADOS,"Estado");
+  cargar();reindexar();render();estado();
+
+  $("bSync").addEventListener("click",function(){sincronizar(true)});
+  $("bConf").addEventListener("click",abrirConf);
+  $("formConf").addEventListener("submit",function(e){e.preventDefault();guardarConf()});
+  $("cCancel").addEventListener("click",function(){cerrarDlg($("dlgConf"))});
+  $("cQuitar").addEventListener("click",quitarConf);
+  window.addEventListener("online",function(){sincronizar(false)});
+  document.addEventListener("visibilitychange",function(){
+    if(document.visibilityState==="visible"&&(!ultimaSync||Date.now()-new Date(ultimaSync).getTime()>60000))sincronizar(false);
+  });
+  sincronizar(false);
+
+  var tq=null;
+  $("q").addEventListener("input",function(){clearTimeout(tq);tq=setTimeout(filtroCambio,120)});
+  ["fTipo","fProp","fEstado"].forEach(function(i){$(i).addEventListener("change",filtroCambio)});
+  $("lista").addEventListener("click",function(e){
+    if(e.target.closest("#mas")){limite+=PAGINA;render();return}
+    var c=e.target.closest(".card");if(c)abrirForm(c.getAttribute("data-id"));
+  });
+  $("lista").addEventListener("keydown",function(e){
+    if(e.key!=="Enter"&&e.key!==" ")return;
+    var c=e.target.closest&&e.target.closest(".card");
+    if(c&&e.target===c){e.preventDefault();abrirForm(c.getAttribute("data-id"))}
+  });
+  $("nuevo").addEventListener("click",function(){abrirForm()});
+  $("form").addEventListener("submit",function(e){e.preventDefault();guardarForm()});
+  $("bCancel").addEventListener("click",function(){cerrarDlg($("dlgForm"))});
+  $("bDel").addEventListener("click",eliminar);
+  $("bCsv").addEventListener("click",exportCsv);
+  $("bJson").addEventListener("click",exportJson);
+  $("bImp").addEventListener("click",function(){$("archivo").click()});
+  $("archivo").addEventListener("change",function(){if(this.files[0])importarJson(this.files[0]);this.value=""});
+
+  if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  }
+}
+init();
+})();
+</script>
+</body>
+</html>
