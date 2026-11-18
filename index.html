@@ -54,6 +54,7 @@ main{padding:12px max(14px,env(safe-area-inset-left)) 40px max(14px,env(safe-are
 .estado.err{color:var(--mal);font-weight:600}
 .ayuda{font-size:.8rem;color:var(--sub);margin:0}
 
+[hidden]{display:none!important}
 dialog:not([open]){display:none}
 dialog{border:0;border-radius:14px;padding:0;width:min(640px,96vw);max-height:94vh;color:var(--txt);background:#fff}
 dialog::backdrop{background:rgba(0,0,0,.5)}
@@ -64,6 +65,8 @@ form{display:flex;flex-direction:column;max-height:94vh}
 label{font-size:.8rem;color:var(--sub);display:block;margin-bottom:3px}
 input,select,textarea{width:100%;min-height:44px;padding:9px;border:1px solid var(--borde);border-radius:8px;background:#fff}
 textarea{min-height:80px;resize:vertical}
+.otro{margin-top:6px}
+.mayus,.card h3,.card .sub{text-transform:uppercase}
 .df{display:flex;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--borde);background:#fafcfe}
 .df button{flex:1;min-height:46px;border-radius:8px;border:0;cursor:pointer}
 .b-ok{background:var(--azul2);color:#fff;font-weight:600}
@@ -113,21 +116,20 @@ textarea{min-height:80px;resize:vertical}
   <form method="dialog" id="form" novalidate>
     <div class="dh" id="formTitulo">Nuevo equipo</div>
     <div class="db">
-      <div><label for="f_nombre">Nombre del equipo *</label><input name="nombre" id="f_nombre" required></div>
-      <div><label for="f_inventario">N° inventario</label><input name="inventario" id="f_inventario"></div>
+      <p class="ayuda full">Anota al menos el N° de inventario o la marca.</p>
+      <div><label for="f_inventario">N° inventario</label><input name="inventario" id="f_inventario" class="mayus" autocomplete="off" autocapitalize="characters"></div>
       <div><label for="f_tipo">Tipo</label><select name="tipo" id="f_tipo"></select></div>
       <div><label for="f_propiedad">Propiedad</label><select name="propiedad" id="f_propiedad"></select></div>
-      <div><label for="f_marca">Marca</label><input name="marca" id="f_marca"></div>
-      <div><label for="f_modelo">Modelo</label><input name="modelo" id="f_modelo"></div>
-      <div><label for="f_serie">N° de serie</label><input name="serie" id="f_serie"></div>
       <div><label for="f_estado">Estado</label><select name="estado" id="f_estado"></select></div>
-      <div><label for="f_ubicacion">Unidad / ubicación</label><input name="ubicacion" id="f_ubicacion"></div>
-      <div><label for="f_usuario">Usuario responsable</label><input name="usuario" id="f_usuario"></div>
-      <div><label for="f_ip">Dirección IP</label><input name="ip" id="f_ip" inputmode="decimal"></div>
-      <div><label for="f_so">Sistema operativo</label><input name="so" id="f_so" placeholder="Ej: Windows 11 Pro"></div>
-      <div><label for="f_ram">RAM</label><input name="ram" id="f_ram" placeholder="Ej: 8 GB"></div>
-      <div><label for="f_disco">Disco</label><input name="disco" id="f_disco" placeholder="Ej: SSD 256 GB"></div>
-      <div class="full"><label for="f_obs">Observaciones</label><textarea name="obs" id="f_obs"></textarea></div>
+      <div><label for="f_marca_sel">Marca</label><select id="f_marca_sel" data-combo="marca"></select><input name="marca" id="f_marca" class="otro mayus" hidden autocomplete="off" autocapitalize="characters" placeholder="Escribe aquí"></div>
+      <div><label for="f_modelo_sel">Modelo</label><select id="f_modelo_sel" data-combo="modelo"></select><input name="modelo" id="f_modelo" class="otro mayus" hidden autocomplete="off" autocapitalize="characters" placeholder="Escribe aquí"></div>
+      <div class="full"><label for="f_ubicacion_sel">Unidad / ubicación</label><select id="f_ubicacion_sel" data-combo="ubicacion"></select><input name="ubicacion" id="f_ubicacion" class="otro mayus" hidden autocomplete="off" autocapitalize="characters" placeholder="Escribe aquí"></div>
+      <div><label for="f_usuario">Usuario responsable</label><input name="usuario" id="f_usuario" class="mayus" autocomplete="off" autocapitalize="characters"></div>
+      <div><label for="f_ip">Dirección IP</label><input name="ip" id="f_ip" inputmode="decimal" autocomplete="off"></div>
+      <div><label for="f_so_sel">Sistema operativo</label><select id="f_so_sel" data-combo="so"></select><input name="so" id="f_so" class="otro mayus" hidden autocomplete="off" autocapitalize="characters" placeholder="Escribe aquí"></div>
+      <div><label for="f_ram_sel">RAM</label><select id="f_ram_sel" data-combo="ram"></select><input name="ram" id="f_ram" class="otro mayus" hidden autocomplete="off" autocapitalize="characters" placeholder="Escribe aquí"></div>
+      <div><label for="f_disco_sel">Disco</label><select id="f_disco_sel" data-combo="disco"></select><input name="disco" id="f_disco" class="otro mayus" hidden autocomplete="off" autocapitalize="characters" placeholder="Escribe aquí"></div>
+      <div class="full"><label for="f_obs">Observaciones</label><textarea name="obs" id="f_obs" class="mayus" autocapitalize="characters"></textarea></div>
     </div>
     <div class="df">
       <button type="button" class="b-del" id="bDel" hidden>Eliminar</button>
@@ -162,6 +164,15 @@ var KEY="inventario_computadores_v1";
 var TIPOS=["Escritorio","Notebook","All-in-One","Mini PC","Servidor","Otro"];
 var PROPS=["Arriendo","Propio"];
 var ESTADOS=["Operativo","En falla","En reparación","De baja"];
+var MAYUS=["inventario","marca","modelo","ubicacion","usuario","so","ram","disco","obs"]; // se guardan siempre en mayúsculas
+var COMBO_SEMILLA={
+  marca:["HP","Dell","Lenovo","Acer","Asus","Samsung","Apple","Positivo"],
+  so:["Windows 11 Pro","Windows 11 Home","Windows 10 Pro","Windows 10 Home","Windows 8.1","Windows 7","Linux"],
+  ram:["2 GB","4 GB","8 GB","16 GB","32 GB","64 GB"],
+  disco:["HDD 500 GB","HDD 1 TB","SSD 120 GB","SSD 240 GB","SSD 256 GB","SSD 480 GB","SSD 512 GB","SSD 1 TB","NVMe 256 GB","NVMe 512 GB"],
+  modelo:[],
+  ubicacion:["DIRECCIÓN", "SECRETARÍA / OFICINA DE PARTES", "SUBDIRECCIÓN ADMINISTRATIVA", "SUBDIRECCIÓN MÉDICA", "ABASTECIMIENTO", "BODEGA ECONOMATO", "BODEGA FARMACIA", "BODEGA INSUMOS CLÍNICOS", "CONTABILIDAD", "PERSONAL", "BIENESTAR", "REMUNERACIONES", "ESTADÍSTICA", "CALIDAD", "DESARROLLO ORGANIZACIONAL", "GES", "GRD", "LOGÍSTICA", "INFORMÁTICA", "PREVENCIÓN DE RIESGOS", "SEDILE", "MANTENIMIENTO", "SERVICIOS GENERALES", "CALDERA", "LAVANDERÍA", "AMBULANCIA", "OIRS", "JARDÍN INFANTIL", "RESIDENCIAS","BOX 1","BOX 2","BOX 3","BOX 4","BOX 6","BOX 8","BOX 9","BOX 10", "URGENCIA", "URGENCIA DENTAL", "SOME", "AGENDA MÉDICA", "SOLICITUD DE HORA", "FICHAJE", "INTERCONSULTA", "MESÓN CENTRAL", "MORBILIDAD", "CURACIONES", "VACUNATORIO", "TOMA DE MUESTRAS", "RECEPCIÓN DE EXÁMENES", "LABORATORIO", "RAYOS", "ESTERILIZACIÓN", "FARMACIA", "DIÁLISIS", "CARDIOVASCULAR", "CRÓNICOS", "CUIDADOS PALIATIVOS", "KINESIOLOGÍA", "PODOLOGÍA", "NUTRICIÓN / ALIMENTACIÓN", "FONOAUDIOLOGÍA", "ASISTENTE SOCIAL", "PSICOLOGÍA", "PSIQUIATRÍA", "SALUD MENTAL", "COSAM", "UAPO", "REHABILITACIÓN DOMICILIARIA", "SALA DE ESTIMULACIÓN", "CONTROL NIÑO SANO", "ODONTOLOGÍA", "PEDIATRÍA", "GINECOLOGÍA / MATRONERÍA", "MATERNIDAD", "REANIMACIÓN", "HOSPITALIZACIÓN ADULTO - CIRUGÍA", "HOSPITALIZACIÓN ADULTO - MEDICINA", "HOSPITALIZACIÓN PEDIÁTRICA", "HOSPITALIZACIÓN OBSTÉTRICA", "ENFERMERÍA", "ESTACIÓN DE ENFERMERÍA (SAMU)"]
+};
 var CAMPOS=[["nombre","Nombre"],["inventario","N° inventario"],["tipo","Tipo"],["propiedad","Propiedad"],["marca","Marca"],["modelo","Modelo"],["serie","N° serie"],["estado","Estado"],["ubicacion","Ubicación"],["usuario","Usuario"],["ip","IP"],["so","Sistema operativo"],["ram","RAM"],["disco","Disco"],["obs","Observaciones"]];
 var MAX_CAMPO=1000,MAX_OBS=4000,MAX_IMPORT_BYTES=5*1024*1024,MAX_IMPORT_ITEMS=5000,PAGINA=150,MIN_CLAVE=12;
 
@@ -250,7 +261,7 @@ function llenarSelect(sel,opciones,todos,extra){
 /* Se ejecuta solo cuando cambian los datos, no en cada tecla. */
 function reindexar(){
   ordenados=datos.slice().sort(function(a,b){
-    var x=a.nombre||"",y=b.nombre||"";
+    var x=tituloDe(a),y=tituloDe(b);
     return colador?colador.compare(x,y):(x<y?-1:x>y?1:0);
   });
   busqueda={};
@@ -275,8 +286,10 @@ function filtrados(){
     return !q||busqueda[d.id].indexOf(q)>-1;
   });
 }
+function tituloDe(d){return d.nombre||d.inventario||[d.marca,d.modelo].filter(Boolean).join(" ")||"(sin identificar)"}
 function tarjeta(d){
   var l1=[d.marca,d.modelo].filter(Boolean).join(" ");
+  if(tituloDe(d)===l1)l1=""; // si el título ya es marca y modelo, no se repite
   var l2=[d.ubicacion,d.usuario].filter(Boolean).join(" · ");
   var ce=claseEstado(d.estado);
   var tags='<span class="tag">'+esc(d.tipo)+'</span>'
@@ -285,7 +298,7 @@ function tarjeta(d){
     +(d.ip?'<span class="tag">'+esc(d.ip)+'</span>':"")
     +(soAlerta(d.so)?'<span class="tag alerta">SO sin soporte</span>':"");
   return '<div class="card '+ce+'" role="button" tabindex="0" data-id="'+esc(d.id)+'">'
-    +'<h3><span>'+esc(d.nombre||"(sin nombre)")+'</span><span class="sub">'+esc(d.inventario)+'</span></h3>'
+    +'<h3><span>'+esc(tituloDe(d))+'</span><span class="sub">'+esc(tituloDe(d)===d.inventario?"":d.inventario)+'</span></h3>'
     +'<div class="sub">'+esc(l1)+(d.serie?(l1?" · ":"")+"S/N "+esc(d.serie):"")+'</div>'
     +(l2?'<div class="sub">'+esc(l2)+'</div>':"")
     +'<div class="tags">'+tags+'</div></div>';
@@ -301,6 +314,38 @@ function render(){
   if(lista.length>limite)html+='<button type="button" class="mas" id="mas">Mostrar más ('+(lista.length-limite)+' restantes)</button>';
   $("lista").innerHTML=html;
 }
+/* Listas desplegables: opciones fijas + las ya escritas en otros equipos + "Otro…" para escribir una nueva. */
+function opcionesCombo(campo,marca){
+  var vistos={},arr=[];
+  function add(v){v=String(v||"").trim();if(MAYUS.indexOf(campo)>-1)v=v.toLocaleUpperCase("es-CL");var k=plano(v);if(v&&!vistos[k]){vistos[k]=1;arr.push(v)}}
+  (COMBO_SEMILLA[campo]||[]).forEach(add);
+  datos.forEach(function(d){
+    if(campo==="modelo"&&marca&&plano(d.marca)!==plano(marca))return;
+    add(d[campo]);
+  });
+  return arr.sort(function(a,b){return colador?colador.compare(a,b):(a<b?-1:a>b?1:0)});
+}
+function llenarCombo(campo,valor){
+  var f=$("form"),sel=$("f_"+campo+"_sel"),inp=f.elements[campo];
+  var ops=opcionesCombo(campo,campo==="modelo"?f.elements.marca.value:"");
+  sel.innerHTML="";
+  function op(v,t){var o=document.createElement("option");o.value=v;o.textContent=t;sel.appendChild(o)}
+  op("","— Elegir —");
+  ops.forEach(function(v){op(v,v)});
+  op("__otro","Otro…");
+  valor=String(valor||"").trim();
+  var hallado=null;
+  ops.forEach(function(v){if(plano(v)===plano(valor))hallado=v});
+  if(!valor){sel.value="";inp.value="";inp.hidden=true}
+  else if(hallado){sel.value=hallado;inp.value=hallado;inp.hidden=true}
+  else{sel.value="__otro";inp.value=valor;inp.hidden=false}
+}
+function comboCambio(sel){
+  var campo=sel.getAttribute("data-combo"),inp=$("form").elements[campo];
+  if(sel.value==="__otro"){inp.value="";inp.hidden=false;inp.focus()}
+  else{inp.value=sel.value;inp.hidden=true}
+  if(campo==="marca")llenarCombo("modelo",$("form").elements.modelo.value); // los modelos dependen de la marca
+}
 function datosCambiaron(){reindexar();render()}
 function filtroCambio(){limite=PAGINA;render()}
 
@@ -315,15 +360,24 @@ function abrirForm(id){
   llenarSelect(f.elements.estado,ESTADOS,"",d&&d.estado);
   CAMPOS.forEach(function(c){var el=f.elements[c[0]];if(el)el.value=d?(d[c[0]]||""):""});
   if(!d){f.elements.tipo.value="Escritorio";f.elements.propiedad.value="Arriendo";f.elements.estado.value="Operativo"}
+  ["marca","modelo","ubicacion","so","ram","disco"].forEach(function(c){llenarCombo(c,d?d[c]:"")});
   abrirDlg($("dlgForm"));
 }
 function guardarForm(){
   var f=$("form");
-  if(!f.elements.nombre.value.trim()){toast("El nombre del equipo es obligatorio");f.elements.nombre.focus();return}
+  var previo=editId?datos.filter(function(x){return x.id===editId})[0]:null;
   var obj={};
-  CAMPOS.forEach(function(c){obj[c[0]]=f.elements[c[0]].value.trim().slice(0,c[0]==="obs"?MAX_OBS:MAX_CAMPO)});
-  var dup=datos.some(function(x){return x.id!==editId&&obj.serie&&x.serie&&x.serie.toLowerCase()===obj.serie.toLowerCase()});
-  if(dup&&!confirm("Ya existe un equipo con ese N° de serie. ¿Guardar igual?"))return;
+  // Los campos que ya no se piden en el formulario (nombre, serie) se conservan tal como estaban.
+  CAMPOS.forEach(function(c){
+    var el=f.elements[c[0]];
+    obj[c[0]]=el?el.value.trim().slice(0,c[0]==="obs"?MAX_OBS:MAX_CAMPO):(previo?previo[c[0]]||"":"");
+  });
+  MAYUS.forEach(function(k){obj[k]=obj[k].toLocaleUpperCase("es-CL")});
+  if(!obj.inventario&&!obj.marca){toast("Anota al menos el N° de inventario o la marca");f.elements.inventario.focus();return}
+  var dup=datos.some(function(x){
+    return x.id!==editId&&((obj.inventario&&x.inventario&&plano(x.inventario)===plano(obj.inventario))||(obj.serie&&x.serie&&plano(x.serie)===plano(obj.serie)));
+  });
+  if(dup&&!confirm("Ya existe un equipo con ese N° de inventario o de serie. ¿Guardar igual?"))return;
   var reemplazado=false;
   obj.id=editId||uid();
   obj.modificado=new Date().toISOString();
@@ -551,6 +605,7 @@ function init(){
     if(c&&e.target===c){e.preventDefault();abrirForm(c.getAttribute("data-id"))}
   });
   $("nuevo").addEventListener("click",function(){abrirForm()});
+  $("form").addEventListener("change",function(e){if(e.target.getAttribute&&e.target.getAttribute("data-combo"))comboCambio(e.target)});
   $("form").addEventListener("submit",function(e){e.preventDefault();guardarForm()});
   $("bCancel").addEventListener("click",function(){cerrarDlg($("dlgForm"))});
   $("bDel").addEventListener("click",eliminar);
